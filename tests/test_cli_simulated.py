@@ -46,10 +46,15 @@ def test_full_workflow(tmp_path, monkeypatch):
     model = json.loads(Path("streamer.json").read_text())["bands"]["125"]
     assert abs(model["q"] - 1.2) < 0.1  # the simulated S3's true Q
 
+    out = run("plot", "--no-open")
+    assert "frequency-response.png" in out
+    run("plot", "--channels", "--no-open", "--out", "lr.png")
+    assert Path("lr.png").stat().st_size > 10_000
+
     run("report")
     md = (s / "report.md").read_text()
-    assert "Fosi S3" in md and "RT60" in md
-    for png in ("response.png", "rt60.png", "etc.png"):
+    assert "Fosi S3" in md and "RT60" in md and "frequency-response.png" in md
+    for png in ("frequency-response.png", "response.png", "rt60.png", "etc.png"):
         assert (s / png).stat().st_size > 10_000
 
 

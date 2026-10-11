@@ -16,6 +16,99 @@ from .eq import format_eq  # noqa: E402
 
 RT60_TARGET = (0.3, 0.5)
 
+# Chart tokens (validated categorical slots 1-2 on the light surface)
+SURFACE = "#fcfcfb"
+TEXT = "#0b0b0b"
+TEXT_2 = "#52514e"
+MUTED = "#898781"
+GRID = "#e1e0d9"
+NEUTRAL_BAND = "#f0efec"
+SERIES = ("#2a78d6", "#eb6834")
+
+
+def _style_axes(ax) -> None:
+    ax.set_facecolor(SURFACE)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    for side in ("left", "bottom"):
+        ax.spines[side].set_color(MUTED)
+    ax.tick_params(colors=TEXT_2, labelsize=9)
+    ax.grid(True, which="major", color=GRID, lw=0.8)
+    ax.grid(True, which="minor", axis="x", color=GRID, lw=0.4, alpha=0.6)
+    ax.set_axisbelow(True)
+
+
+def plot_frequency_response(path: Path, freqs, curves: list[tuple[str, np.ndarray]], target, target_adapted,
+                            bands, gains, current, eq_db, trust: tuple[float, float], title: str,
+                            subtitle: str, eq_color: str = SERIES[1], shared_level: bool = False) -> Path:
+    """Two panels sharing the frequency axis: in-room response vs target, and the S3 EQ settings.
+
+    Each curve is level-aligned to the target at 500 Hz-2 kHz; with `shared_level`
+    all curves get one common offset so differences between them (L/R balance) stay visible.
+    """
+    fig, (ax, ax_eq) = plt.subplots(2, 1, figsize=(11, 7.5), sharex=True, facecolor=SURFACE,
+                                    gridspec_kw={"height_ratios": [3, 1.3], "hspace": 0.12})
+    for a in (ax, ax_eq):
+        _style_axes(a)
+        lo, hi = trust
+        if lo > 20:
+            a.axvspan(20, lo, color=NEUTRAL_BAND, zorder=0)
+        if hi < 20000:
+            a.axvspan(hi, 20000, color=NEUTRAL_BAND, zorder=0)
+
+    ax.semilogx(freqs, target, color=TEXT_2, lw=1.2, ls="--", label="Target", zorder=2)
+    if not np.allclose(target, target_adapted):
+        ax.semilogx(freqs, target_adapted, color=TEXT_2, lw=1.0, ls=":",
+                    label="Target, following speaker roll-off", zorder=2)
+    in_view = (freqs >= 20) & (freqs <= 20000)
+    lo, hi = float(np.min(target[in_view])), float(np.max(target[in_view]))
+    common = None
+    if shared_level:
+        from .analysis import power_average
+
+        mean = smooth(freqs, power_average([db for _, db in curves]), 1 / 6)
+        common = level_offset(freqs, mean, target_adapted)
+    for (label, db), color in zip(curves, SERIES):
+        y = smooth(freqs, db, 1 / 6)
+        y = y + (common if common is not None else level_offset(freqs, y, target_adapted))
+        ax.semilogx(freqs, y, color=color, lw=2.0, label=label, zorder=3)
+        lo, hi = min(lo, float(np.min(y[in_view]))), max(hi, float(np.max(y[in_view])))
+    ax.set_ylim(min(-20.0, np.floor(lo / 5) * 5 - 5), max(18.0, np.ceil(hi / 5) * 5 + 3))
+    ax.set_ylabel("Level (dB, 0 dB = target at 1 kHz)", color=TEXT_2, fontsize=9)
+    ax.legend(loc="lower left", fontsize=9, frameon=False, labelcolor=TEXT)
+    fig.suptitle(title, x=0.075, ha="left", y=0.975, fontsize=14, color=TEXT, fontweight="bold")
+    fig.text(0.075, 0.925, subtitle, ha="left", fontsize=9.5, color=TEXT_2)
+    y_top = ax.get_ylim()[1] - 1.5
+    if trust[1] < 20000:
+        ax.text(np.sqrt(trust[1] * 20000), y_top, "mic not\ntrusted", ha="center", va="top", fontsize=8, color=MUTED)
+    if trust[0] > 20:
+        ax.text(np.sqrt(trust[0] * 20), y_top, "mic not\ntrusted", ha="center", va="top", fontsize=8, color=MUTED)
+
+    # EQ panel: one bar per S3 band (what to enter), plus the resulting filter curve
+    gains = np.asarray(gains, dtype=float)
+    lefts = np.asarray(bands) * 2 ** -0.22
+    widths = np.asarray(bands) * (2 ** 0.22 - 2 ** -0.22)
+    ax_eq.bar(lefts, gains, width=widths, align="edge", color=eq_color, alpha=0.35, zorder=2)
+    ax_eq.semilogx(freqs, eq_db, color=eq_color, lw=2.0, zorder=3)
+    ax_eq.axhline(0, color=MUTED, lw=0.8, zorder=1)
+    cur = np.asarray(current, dtype=float)
+    if np.any(cur):
+        ax_eq.scatter(bands, cur, marker="_", s=260, color=TEXT, lw=2, zorder=4, label="currently set")
+        ax_eq.legend(loc="lower right", fontsize=8, frameon=False, labelcolor=TEXT)
+    lim = max(4.0, float(np.max(np.abs(np.concatenate([gains, eq_db])))) + 2.5)
+    ax_eq.set_ylim(-lim, lim)
+    for b, g in zip(bands, gains):
+        ax_eq.text(b, g + (0.6 if g >= 0 else -0.6), f"{g:+.1f}", ha="center",
+                   va="bottom" if g >= 0 else "top", fontsize=8.5, color=TEXT)
+    ax_eq.set_ylabel("S3 EQ (dB)", color=TEXT_2, fontsize=9)
+    ax_eq.set_xlabel("Frequency (Hz)", color=TEXT_2, fontsize=9)
+    ax_eq.set_xlim(20, 20000)
+    ax_eq.set_xticks(list(bands), [band_label(b) for b in bands])
+    ax_eq.xaxis.set_minor_formatter(plt.NullFormatter())
+    fig.savefig(path, dpi=140, facecolor=SURFACE, bbox_inches="tight")
+    plt.close(fig)
+    return path
+
 
 def treatment_advice(ac: dict) -> list[str]:
     tips = []

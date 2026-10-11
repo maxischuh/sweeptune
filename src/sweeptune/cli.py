@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -647,6 +649,58 @@ def verify(positions: int = typer.Option(3, help="Mic positions to re-measure.")
         console.print("Enter them, then run [bold]sweeptune verify[/] again.")
 
 
+# ---------------------------------------------------------------------- plot
+def frequency_plot(s: Session, channels: bool = False, out: Optional[Path] = None) -> Path:
+    from . import report as rp
+
+    cfg = state.cfg
+    d = s.latest_measurement_dir()
+    m = load_measurement(d)
+    if not (d / "suggestion.json").exists():
+        run_suggest(s, d, m, quiet=True)
+    sugg = json.loads((d / "suggestion.json").read_text())
+    mic = load_profile(m.mic)
+    model = load_streamer_model(cfg)
+    ra = analyze_measurement(m, mic, cfg, model)
+    gains = np.asarray(sugg["gains"], dtype=float)
+    eq_db = eq_curve(FREQS, gains, cfg.bands, model)
+    eq_color = rp.SERIES[1]
+    if channels:
+        curves = [(f"{ch} speaker (measured)", ra.per_channel[ch]) for ch in ("L", "R") if ch in ra.per_channel]
+        eq_color = rp.TEXT_2  # orange means "R" in this view
+    else:
+        state_eq = "with the EQ currently set" if any(m.applied_eq) else "EQ flat"
+        curves = [(f"Measured ({state_eq})", ra.average),
+                  ("Predicted with the EQ below", np.asarray(sugg["room"]) + eq_db)]
+    title = "Frequency response at the listening position"
+    if s.meta.get("simulate"):
+        title += " (SIMULATED ROOM)"
+    subtitle = (f"Session {s.path.name} · {m.kind} · mic {m.mic} · {len(m.positions())} positions"
+                f"{' · L/R on a shared level (balance visible)' if channels else ', L+R'} · "
+                f"1/6-octave smoothing · target {sugg['target']}")
+    path = out or s.path / "frequency-response.png"
+    return rp.plot_frequency_response(path, FREQS, curves, np.asarray(sugg["target_curve"]),
+                                      np.asarray(sugg["target_adapted"]), cfg.bands, gains, m.applied_eq, eq_db,
+                                      (mic.trust_low_hz, mic.trust_high_hz), title, subtitle, eq_color,
+                                      shared_level=channels)
+
+
+@app.command()
+def plot(session: Optional[Path] = typer.Option(None, help="Session folder (default: latest)."),
+         channels: bool = typer.Option(False, "--channels", help="Show L and R separately."),
+         out: Optional[Path] = typer.Option(None, help="PNG path (default: <session>/frequency-response.png)."),
+         show: bool = typer.Option(True, "--open/--no-open", help="Open the PNG (macOS Preview).")):
+    """Plot the measured frequency response, the target and the suggested EQ."""
+    try:
+        s = Session.open(session)
+        path = frequency_plot(s, channels, out)
+    except FileNotFoundError as e:
+        fail(str(e))
+    console.print(f"Plot written to {path}")
+    if show and sys.platform == "darwin" and sys.stdout.isatty():
+        subprocess.run(["open", str(path)], check=False)
+
+
 # ---------------------------------------------------------------------- report
 @app.command()
 def report(session: Optional[Path] = typer.Option(None)):
@@ -688,6 +742,7 @@ def report(session: Optional[Path] = typer.Option(None)):
                         "max_err": float(np.max(np.abs(err[mask])))})
     ac = acoustics_summary(m, ra)
     imgs = [
+        frequency_plot(s),
         rp.plot_responses(s.path / "response.png", FREQS, curves, target, adapted, cfg.bands,
                           (mic.trust_low_hz, mic.trust_high_hz)),
         rp.plot_rt60(s.path / "rt60.png", ac["rt60"]),

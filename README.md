@@ -34,6 +34,7 @@ uv run sweeptune doctor                         # routing, mic inputs, noise flo
 uv run sweeptune balance --live                 # set the amp's balance knob at the seat (L/R level + distance)
 uv run sweeptune measure --mic audyssey         # 7 positions, L and R, EQ flat
 uv run sweeptune eq suggest                     # table + copy string for the S3
+uv run sweeptune plot                           # frequency response vs target + suggested EQ (PNG, opens in Preview)
 # enter the values on the S3 (and lower its volume by the headroom shown)
 uv run sweeptune verify                         # re-measure, compare to prediction, next correction
 uv run sweeptune verify                         # repeat until converged
@@ -55,6 +56,7 @@ Optional:
 - `sweeptune mic relcal iphone17pro --ref audyssey` – derive a calibration for another mic at the same spot.
 - `sweeptune sweep export` + `sweeptune analyze rec1.wav rec2.wav …` – offline path, e.g. recording on the iPhone
   with an app that offers a measurement (unprocessed) mode.
+- `sweeptune plot --channels` – left and right speaker on a shared level, so a balance offset is visible.
 - `sweeptune --simulate …` – run any command against a synthetic room, no speakers needed.
 
 ## Microphones
