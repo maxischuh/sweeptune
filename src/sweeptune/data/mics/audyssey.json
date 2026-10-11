@@ -1,0 +1,21 @@
+{
+  "id": "audyssey",
+  "name": "Audyssey calibration mic (bundled with AV receivers)",
+  "kind": "omnidirectional electret capsule, 3.5 mm plug, needs plug-in power",
+  "connection": "MacBook 3.5 mm headset jack (CTIA TRRS). A plain TS/TRS plug may short the mic contact; if macOS shows no external microphone, use a TRS-mic -> TRRS adapter or a USB-C audio interface with plug-in power.",
+  "input_patterns": ["Externes Mikrofon", "External Microphone", "USB"],
+  "input_excludes": ["MacBook", "iPhone", "Mikrofon von"],
+  "os_processing": false,
+  "trust_low_hz": 20,
+  "trust_high_hz": 10000,
+  "trust_level": "primary",
+  "placement": "Ear height at the listening seat, capsule pointing at the ceiling (as for Audyssey/AccuEQ).",
+  "notes": [
+    "APPROXIMATE, VERIFY: no per-unit calibration is published; the AVR applies a generic model correction internally.",
+    "Community comparisons (AV Nirvana) find it close to UMIK-1/Dayton capsules without cal files; assumed ~flat 20 Hz-10 kHz.",
+    "Above ~10 kHz the response is uncertain, so it is excluded from the EQ solve."
+  ],
+  "calibration": null,
+  "cal_file": null,
+  "approximate": true
+}

@@ -1,0 +1,20 @@
+{
+  "id": "macbook-m1pro",
+  "name": "MacBook Pro 2021 built-in three-mic array",
+  "kind": "beamforming MEMS array ('studio-quality'), no published frequency response",
+  "connection": "Built-in. Set Control Center > Mic Mode to Standard (no Voice Isolation).",
+  "input_patterns": ["MacBook Pro-Mikrofon", "MacBook Pro Microphone", "MacBook"],
+  "input_excludes": [],
+  "os_processing": true,
+  "trust_low_hz": 100,
+  "trust_high_hz": 8000,
+  "trust_level": "low",
+  "placement": "Lid open, laptop at ear height on a stand, screen facing the speakers; the body causes reflections.",
+  "notes": [
+    "APPROXIMATE, VERIFY: expect bass roll-off below ~100 Hz and beamforming coloration.",
+    "Only useful to compare EQ iterations against each other, never as an absolute reference."
+  ],
+  "calibration": null,
+  "cal_file": null,
+  "approximate": true
+}

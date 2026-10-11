@@ -1,0 +1,21 @@
+{
+  "id": "iphone17pro",
+  "name": "iPhone 17 Pro (Continuity microphone or offline recording)",
+  "kind": "MEMS array; primary bottom mic sits on the opposite side of the USB-C port vs. earlier iPhones",
+  "connection": "Live: Continuity microphone (appears as '<iPhone name> Microphone' / 'Mikrofon von <iPhone name>'). Offline: record `sweeptune sweep export` WAV with an app offering AVAudioSession measurement mode, AirDrop it, then `sweeptune analyze`.",
+  "input_patterns": ["iPhone", "Mikrofon von", "Microphone"],
+  "input_excludes": ["MacBook", "External", "Externes", "USB"],
+  "os_processing": true,
+  "trust_low_hz": 30,
+  "trust_high_hz": 16000,
+  "trust_level": "secondary",
+  "placement": "Mic end (bottom) pointing at the ceiling at ear height, held away from the body or on a stand.",
+  "notes": [
+    "APPROXIMATE, VERIFY: Faber Acoustical published an anechoic measurement of the iPhone 17 Pro mic response/directivity (faberacoustical.com, 2025); no numbers are bundled here.",
+    "Continuity mode may apply voice processing/AGC; sweeptune runs a two-level AGC check before measuring.",
+    "Use `sweeptune mic relcal iphone17pro --ref audyssey` to derive a correction relative to the Audyssey mic."
+  ],
+  "calibration": null,
+  "cal_file": null,
+  "approximate": true
+}
