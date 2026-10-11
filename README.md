@@ -5,13 +5,17 @@ enter into the **Fosi Audio S3** 10-band EQ (31.5 Hz – 16 kHz, ±10 dB, 0.5 dB
 neutral-but-pleasing, Harman-like in-room curve. It also reports reverberation (RT60), early
 reflections and room modes, because EQ cannot fix echo.
 
-## Setup
+## Install
 
 ```bash
 brew install uv
-uv sync
-uv run sweeptune --help
+uv tool install sweeptune     # from PyPI, puts `sweeptune` on your PATH
+sweeptune --help
 ```
+
+From a clone instead: `uv sync`, then prefix the commands below with `uv run`.
+
+## Setup
 
 Select the Fosi S3 as the Mac's sound output (Control Center → Sound → AirPlay) before measuring.
 Device names can be overridden in an optional `sweeptune.toml` (see `src/sweeptune/config.py` for all keys):
@@ -69,6 +73,12 @@ if `doctor` finds no external mic, the Audyssey plug needs a TRS→TRRS mic adap
 ```bash
 uv run pytest
 ```
+
+## Releasing
+
+1. Bump `version` in `pyproject.toml` (PyPI never accepts the same version twice), commit and push.
+2. Publish a GitHub release whose tag is that version with a `v` prefix, e.g. `v0.2.0`.
+   The `publish` workflow tests, builds and uploads to PyPI via trusted publishing (no token needed).
 
 ## License
 

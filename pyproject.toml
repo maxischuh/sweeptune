@@ -24,6 +24,11 @@ dependencies = [
     "matplotlib>=3.9",
 ]
 
+[project.urls]
+Homepage = "https://github.com/maxischuh/sweeptune"
+Repository = "https://github.com/maxischuh/sweeptune"
+Issues = "https://github.com/maxischuh/sweeptune/issues"
+
 [project.scripts]
 sweeptune = "sweeptune.cli:app"
 
@@ -36,6 +41,12 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sweeptune"]
+core-metadata-version = "2.4"  # widely accepted by PyPI/twine; 2.4 is the minimum for License-Expression
+
+[tool.hatch.build.targets.sdist]
+core-metadata-version = "2.4"
+# Allowlist: local-only files (notes, measurements) can never end up in a release.
+include = ["/src", "/tests", "/README.md", "/LICENSE", "/pyproject.toml", "/uv.lock"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
